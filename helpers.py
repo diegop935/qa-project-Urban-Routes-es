@@ -4,42 +4,47 @@ from selenium.common import WebDriverException
 
 
 def retrieve_phone_code(driver) -> str:
-    """Este código devuelve un número de confirmación de teléfono y lo devuelve como un string.
-    Utilízalo cuando la aplicación espere el código de confirmación para pasarlo a tus pruebas.
-    El código de confirmación del teléfono solo se puede obtener después de haberlo solicitado en la aplicación."""
+    """Obtiene el código de confirmación telefónica desde los logs de Chrome."""
 
-    code = None
-
-    for i in range(10):
+    for _ in range(15):
         try:
-            logs = [
-                log["message"]
-                for log in driver.get_log("performance")
-                if log.get("message")
-                   and "api/v1/number?number" in log.get("message")
-            ]
+            logs = driver.get_log("performance")
 
             for log in reversed(logs):
-                message_data = json.loads(log)["message"]
+                try:
+                    message = json.loads(log["message"])["message"]
 
-                body = driver.execute_cdp_cmd(
-                    "Network.getResponseBody",
-                    {"requestId": message_data["params"]["requestId"]}
-                )
+                    if message["method"] != "Network.responseReceived":
+                        continue
 
-                code = "".join(
-                    [x for x in body["body"] if x.isdigit()]
-                )
+                    response = message["params"]["response"]
+                    url = response.get("url", "")
+
+                    if "api/v1/number?number" not in url:
+                        continue
+
+                    request_id = message["params"]["requestId"]
+
+                    body = driver.execute_cdp_cmd(
+                        "Network.getResponseBody",
+                        {"requestId": request_id}
+                    )
+
+                    code = "".join(
+                        x for x in body["body"] if x.isdigit()
+                    )
+
+                    if code:
+                        return code
+
+                except (KeyError, json.JSONDecodeError, WebDriverException):
+                    continue
 
         except WebDriverException:
-            time.sleep(1)
-            continue
+            pass
 
-        if not code:
-            raise Exception(
-                "No se encontró el código de confirmación del teléfono.\n"
-                "Utiliza 'retrieve_phone_code' solo después de haber solicitado "
-                "el código de confirmación del teléfono en tu aplicación."
-            )
+        time.sleep(1)
 
-        return code
+    raise Exception(
+        "No se encontró el código de confirmación del teléfono."
+    )

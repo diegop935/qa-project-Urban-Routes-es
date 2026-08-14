@@ -39,6 +39,12 @@ class UrbanRoutesPage:
         '//div[contains(@class, "section active")]//button[contains(@class, "close-button")]'
     )
 
+    card_number_display = (
+        By.XPATH,
+        '//div[contains(@class, "card-wrapper")]'
+        '//input[contains(@class, "card-input")]'
+    )
+
     # Localizadores de direcciones
     from_field = (By.ID, 'from')
     to_field = (By.ID, 'to')
@@ -59,6 +65,12 @@ class UrbanRoutesPage:
         By.XPATH,
         '//div[contains(@class, "r-counter")][.//div[contains(@class, "r-counter-label") '
         'and text()="Helado"]]//div[contains(@class, "counter-plus")]'
+    )
+
+    ice_cream_count = (
+        By.XPATH,
+        '//div[contains(@class, "r-counter")][.//div[contains(@class, "r-counter-label") '
+        'and text()="Helado"]]//div[contains(@class, "counter-value")]'
     )
 
     # Localizador pedir taxi
@@ -139,6 +151,20 @@ class UrbanRoutesPage:
 
         blanket.click()
 
+    def is_blanket_selected(self):
+        checkbox = WebDriverWait(self.driver, 10).until(
+            expected_conditions.presence_of_element_located(
+                (
+                    By.XPATH,
+                    '//div[contains(@class, "r-type-switch") and '
+                    './/div[contains(@class, "r-sw-label") and normalize-space()="Manta y pañuelos"]]'
+                    '//input[@type="checkbox"]'
+                )
+            )
+        )
+
+        return checkbox.is_selected()
+
     def select_ice_cream(self):
         plus_button = WebDriverWait(self.driver, 10).until(
             expected_conditions.element_to_be_clickable(
@@ -149,23 +175,20 @@ class UrbanRoutesPage:
         plus_button.click()
         plus_button.click()
 
+    def get_ice_cream_count(self):
+        counter = WebDriverWait(self.driver, 10).until(
+            expected_conditions.visibility_of_element_located(
+                self.ice_cream_count
+            )
+        )
+
+        return counter.text
+
     def order_taxi(self):
         buttons = self.driver.find_elements(
             By.XPATH,
             '//button[contains(., "Pedir un taxi")]'
         )
-
-        print("Cantidad de botones encontrados:", len(buttons))
-
-        for button in buttons:
-            print(
-                "BOTÓN:",
-                repr(button.text),
-                "visible:",
-                button.is_displayed(),
-                "habilitado:",
-                button.is_enabled()
-            )
 
         visible_button = None
 
@@ -206,9 +229,11 @@ class UrbanRoutesPage:
 
         card.click()
 
-    def open_phone_modal_and_submit(self, phone_number):
-        import time
+    def is_comfort_selected(self):
+        card = self.driver.find_element(*self.comfort_card)
+        return "active" in card.get_attribute("class")
 
+    def open_phone_modal(self):
         WebDriverWait(self.driver, 10).until(
             expected_conditions.element_to_be_clickable(
                 self.phone_button
@@ -219,17 +244,7 @@ class UrbanRoutesPage:
             expected_conditions.visibility_of_element_located(
                 self.phone_field
             )
-        ).send_keys(phone_number)
-
-        next_btn = WebDriverWait(self.driver, 10).until(
-            expected_conditions.element_to_be_clickable(
-                self.next_phone_button
-            )
         )
-
-        next_btn.click()
-
-        time.sleep(2)
 
     def enter_sms_code(self, code):
         import time
@@ -265,6 +280,25 @@ class UrbanRoutesPage:
         )
 
         return not any(element.is_displayed() for element in elements)
+
+    def open_phone_modal_and_submit(self, phone_number):
+        self.open_phone_modal()
+
+        phone_field = WebDriverWait(self.driver, 10).until(
+            expected_conditions.visibility_of_element_located(
+                self.phone_field
+            )
+        )
+
+        phone_field.send_keys(phone_number)
+
+        next_btn = WebDriverWait(self.driver, 10).until(
+            expected_conditions.element_to_be_clickable(
+                self.next_phone_button
+            )
+        )
+
+        next_btn.click()
 
     def add_credit_card(self, card_number, card_cvv):
         import time
@@ -356,3 +390,13 @@ class UrbanRoutesPage:
 
         except Exception:
             pass
+
+    def is_card_added(self):
+        card_input = WebDriverWait(self.driver, 10).until(
+            expected_conditions.presence_of_element_located(
+                self.card_number_display
+            )
+        )
+
+        return card_input.get_attribute("value") != ""
+

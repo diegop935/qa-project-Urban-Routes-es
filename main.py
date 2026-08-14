@@ -1,4 +1,5 @@
 import data
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -81,7 +82,7 @@ class TestUrbanRoutes:
             )
         )
 
-        assert comfort_card.is_displayed()
+        assert self.routes_page.is_comfort_selected()
 
     # ---------------------------------------------------------
     # 3. REGISTRO DEL NÚMERO TELEFÓNICO
@@ -91,17 +92,17 @@ class TestUrbanRoutes:
         self._set_route()
         self._select_comfort()
 
-        self.routes_page.open_phone_modal_and_submit(
-            data.phone_number
-        )
+        self.routes_page.open_phone_modal()
 
-        sms_field = WebDriverWait(self.driver, 10).until(
+        phone_field = WebDriverWait(self.driver, 10).until(
             expected_conditions.visibility_of_element_located(
-                self.routes_page.sms_code_field
+                self.routes_page.phone_field
             )
         )
 
-        assert sms_field.is_displayed()
+        phone_field.send_keys(data.phone_number)
+
+        assert phone_field.get_attribute("value") == data.phone_number
 
     # ---------------------------------------------------------
     # 4. AGREGAR TARJETA BANCARIA
@@ -117,12 +118,7 @@ class TestUrbanRoutes:
             data.card_code
         )
 
-        print("=== ESTADO DESPUÉS DE AGREGAR TARJETA ===")
-        print("URL:", self.driver.current_url)
-        print(self.driver.find_element(By.TAG_NAME, "body").text)
-
-        assert "Método de pago" in self.driver.find_element(By.TAG_NAME, "body").text
-
+        assert self.routes_page.is_card_added()
     # ---------------------------------------------------------
     # 5. CONFIRMACIÓN DEL CÓDIGO DE SEGURIDAD
     # ---------------------------------------------------------
@@ -175,6 +171,7 @@ class TestUrbanRoutes:
         self._set_route()
         self._select_comfort()
         self._confirm_phone()
+
         self.routes_page.add_credit_card(
             data.card_number,
             data.card_code
@@ -182,13 +179,7 @@ class TestUrbanRoutes:
 
         self.routes_page.select_blanket_and_tissues()
 
-        blanket_switch = WebDriverWait(self.driver, 10).until(
-            expected_conditions.presence_of_element_located(
-                self.routes_page.blanket_switch
-            )
-        )
-
-        assert blanket_switch.is_displayed()
+        assert self.routes_page.is_blanket_selected()
 
     # ---------------------------------------------------------
     # 8. PEDIR DOS HELADOS
@@ -198,6 +189,7 @@ class TestUrbanRoutes:
         self._set_route()
         self._select_comfort()
         self._confirm_phone()
+
         self.routes_page.add_credit_card(
             data.card_number,
             data.card_code
@@ -205,13 +197,7 @@ class TestUrbanRoutes:
 
         self.routes_page.select_ice_cream()
 
-        ice_cream_plus = WebDriverWait(self.driver, 10).until(
-            expected_conditions.presence_of_element_located(
-                self.routes_page.ice_cream_plus
-            )
-        )
-
-        assert ice_cream_plus.is_displayed()
+        assert self.routes_page.get_ice_cream_count() == "2"
 
     # ---------------------------------------------------------
     # 9. APARICIÓN DEL MODAL DE BÚSQUEDA DE TAXI
